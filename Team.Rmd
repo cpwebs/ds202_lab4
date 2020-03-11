@@ -1,0 +1,16 @@
+---
+title: "Team.Rmd"
+author: "Cole Weber; cpwebs"
+date: "3/11/2020"
+output: html_document
+---
+```{r}
+library(ggplot2)
+library(dplyr)
+library(readxl)
+defense <- read_excel('cyclonesFootball2019.xlsx', sheet='Defensive')
+offense <- read_excel('cyclonesFootball2019.xlsx', sheet='Offensive')
+biography <- read_excel('cyclonesFootball2019.xlsx', sheet='Biography')
+
+#df <- data.frame(x = c('a.b', 'a.d', 'b.c', NA), b=1)
+```
