@@ -8,9 +8,90 @@ output: html_document
 library(ggplot2)
 library(dplyr)
 library(readxl)
+library(tidyverse)
+
 defense <- read_excel('cyclonesFootball2019.xlsx', sheet='Defensive')
 offense <- read_excel('cyclonesFootball2019.xlsx', sheet='Offensive')
 biography <- read_excel('cyclonesFootball2019.xlsx', sheet='Biography')
 
-#df <- data.frame(x = c('a.b', 'a.d', 'b.c', NA), b=1)
+#part 1
+#1,2,3
+offClean <- offense %>% mutate_at('Rushing_ATT',as.numeric)%>% mutate_at('Rushing_YDS',as.numeric)%>% mutate_at('Rushing_TD',as.numeric)%>% mutate_at('Receiving_REC',as.numeric)%>% mutate_at('Receiving_YDS',as.numeric)%>% mutate_at('Receiving_TD',as.numeric)%>% mutate_at('Passing_CMP-ATT',as.numeric)%>% mutate_at('Passing_YDS',as.numeric)%>% mutate_at('Passing_TD',as.numeric)%>% mutate_at('Passing_INT',as.numeric)%>% mutate(Name = factor(Name)) %>% mutate(Opponent_Opponent = factor(Opponent_Opponent))
+offClean
+
+
+defClean <- defense %>% mutate_at('Tackles_Solo',as.numeric)%>% mutate_at('Tackles_ASST',as.numeric)%>% mutate_at('Tackles_TFL',as.numeric)%>% mutate_at('Tackles_Sack',as.numeric)%>% mutate_at('Turnover_FF',as.numeric)%>% mutate_at('Turnover_FR',as.numeric)%>% mutate_at('Turnover_INT',as.numeric)%>% mutate_at('Pass_QBH',as.numeric)%>% mutate_at('Pass_PB',as.numeric)%>% mutate(Name = factor(Name)) %>% mutate(Opponent_Opponent = factor(Opponent_Opponent))
+defClean
+
+bioClean <- biography %>% mutate_at('Weight',as.numeric) %>% separate(col = Height, into = c('Feet','Inches'), sep = "-")%>% mutate(Feet = as.numeric(Feet))%>% mutate(Inches = as.numeric(Inches))%>% mutate(Feet = Feet *12)%>%rowwise() %>% mutate(Inches = sum(Feet, Inches))%>% select(-Feet)
+bioClean
+
+```
+
+```{r}
+#part 2
+
+#1
+defLong <- defClean %>% pivot_longer(3:11,names_to = 'Type',values_to = 'Statistics')
+defLong
+#2
+ggplot(defLong, aes(x=Opponent_Opponent, y=Statistics)) + geom_point() + facet_wrap(~Type) + theme(axis.text.x=element_text(color = "black", size=6, angle=60, vjust=.8, hjust=0.8))
+
+#3
+#wvksDefense <- defLong %>% filter(Type %in% c('Tackles_Solo'))%>% filter(Opponent_Opponent %in% c('West Virginia','Kansas State'))
+wvksDefense <- defLong %>% filter(Type %in% c('Tackles_Solo'))%>% filter(Opponent_Opponent %in% c('West Virginia','Kansas State')) %>% pivot_wider(names_from='Opponent_Opponent', values_from='Statistics')
+#wvksDefense
+
+
+#ksDefense <- defLong %>% filter(Type %in% c('Tackles_Solo'))%>% filter(Opponent_Opponent %in% c('Kansas State'))
+
+#should contain missing values??
+ggplot(wvksDefense, aes(x = `West Virginia`, y = `Kansas State`)) + geom_point(aes(color=Name))
+
+```
+
+```{r}
+#part 3 
+bioClean
+#1
+bioClean1 <- bioClean %>% separate(6:6, c("City","State"), sep = ",")
+#head(bioClean1,3)
+
+cityState <- bioClean1 %>% select("City","State")
+head(cityState,3)
+
+#2
+
+bioClean2 <- bioClean1 %>% group_by(State) %>% summarise(NumberLocation = n())
+bioClean2
+
+#part 4
+
+#1
+vectorBioClean = bioClean1 %>% mutate(Name = factor(Name))
+df1 <- inner_join(offClean, vectorBioClean, by = "Name")
+
+df1Final <- df1 %>% select("Name","State") 
+unique(df1Final)
+
+#2
+df2Final <- df1 %>% select("Weight","Receiving_YDS") 
+
+ggplot(df2Final, aes(x=Receiving_YDS, y=Weight)) + geom_point()
+
+#3
+df3 <- full_join(offClean, defClean, by = "Name")
+
+brockPurdy <- df3 %>% filter(Name %in% c('Purdy, Brock'))
+brockPurdy
+
+
+
+ggplot(df3, aes(x = Rushing_YDS, y = Rushing_ATT)) + geom_point(aes(color=Name))
+
+#defLong <- defClean %>% pivot_longer(3:11,names_to = 'TypeD',values_to = 'StatisticsD')
+#offLong <- offClean %>% pivot_longer(3:12,names_to = 'TypeO',values_to = 'StatisticsO')
+#dfFinal <- full_join(defLong, offLong, by = "Name")
+#dfFinal
+
 ```
