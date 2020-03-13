@@ -95,3 +95,25 @@ ggplot(df3, aes(x = Rushing_YDS, y = Rushing_ATT)) + geom_point(aes(color=Name))
 #dfFinal
 
 ```
+
+
+
+
+
+
+```{r}
+defensiveP<- defClean%>% rowwise()%>%mutate(defensivePlays = sum(Tackles_Solo,Tackles_ASST, Tackles_TFL,Tackles_Sack, Turnover_FF, Turnover_FR, Turnover_INT, Pass_QBH,Pass_PB ))%>% select(Name, defensivePlays)
+defensivePlays
+```
+
+
+```{r}
+defensiveP%>%group_by(Name)%>% summarise(defensiveP=sum(defensivePlays))
+
+```
+
+```{r}
+newBio<- bioClean%>% select(Name, Inches, Weight)
+newBio
+```
+
