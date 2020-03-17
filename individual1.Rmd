@@ -1,0 +1,105 @@
+---
+title: "Lab 4"
+author: "Cole Weber; cpwebs"
+date: "3/17/2020"
+output: html_document
+---
+```{r}
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyverse)
+
+defense <- read_excel('cyclonesFootball2019.xlsx', sheet='Defensive')
+offense <- read_excel('cyclonesFootball2019.xlsx', sheet='Offensive')
+biography <- read_excel('cyclonesFootball2019.xlsx', sheet='Biography')
+```
+## Part 1 Questions 1, 2, 3:
+```{r}
+offClean <- offense %>% mutate_at('Rushing_ATT',as.numeric)%>% mutate_at('Rushing_YDS',as.numeric)%>% mutate_at('Rushing_TD',as.numeric)%>% mutate_at('Receiving_REC',as.numeric)%>% mutate_at('Receiving_YDS',as.numeric)%>% mutate_at('Receiving_TD',as.numeric)%>% mutate_at('Passing_CMP-ATT',as.numeric)%>% mutate_at('Passing_YDS',as.numeric)%>% mutate_at('Passing_TD',as.numeric)%>% mutate_at('Passing_INT',as.numeric)%>% mutate(Name = factor(Name)) %>% mutate(Opponent_Opponent = factor(Opponent_Opponent))
+offClean
+
+defClean <- defense %>% mutate_at('Tackles_Solo',as.numeric)%>% mutate_at('Tackles_ASST',as.numeric)%>% mutate_at('Tackles_TFL',as.numeric)%>% mutate_at('Tackles_Sack',as.numeric)%>% mutate_at('Turnover_FF',as.numeric)%>% mutate_at('Turnover_FR',as.numeric)%>% mutate_at('Turnover_INT',as.numeric)%>% mutate_at('Pass_QBH',as.numeric)%>% mutate_at('Pass_PB',as.numeric)%>% mutate(Name = factor(Name)) %>% mutate(Opponent_Opponent = factor(Opponent_Opponent))
+defClean
+```
+
+## Part 2 Question 1:
+
+```{r}
+defLong <- defClean %>% pivot_longer(3:11,names_to = 'Type',values_to = 'Statistics')
+```
+
+## Part 2 Question 2:
+
+The defensive skills that are rare are turnovers which can be seen from the bottom three histogram graphs where it clearly shows that there aren't many turnover statistics. The turnovers that are included in being uncommon are forced fumbles, fumble recoveries, and interceptions. These graphs need to be read from the perspective of each players in each of their games. The y axis here is the count of each player's statistic of each game. Therefore, if the y axis is lower then it's less common. The turnover statistics are one big block because each player when getting a turnover, only got 1 in that game so 1 was the minimum and largest value of a player recording a turnover. Values of 0 were omitted to increase visability since the data would be skewed since it counts all players and their game statistics.
+```{r}
+`%notin%` <- Negate(`%in%`)
+defLong2 <- defLong %>% filter(Statistics %notin% 0.0)
+ggplot(data = defLong2, aes(x = Statistics)) + geom_histogram() + facet_wrap(~Type, scale = "free") + labs(title="Histogram for Each Defensive Statistic", y = "Each Player Number Count")
+```
+
+## Part 2 Question 3:
+
+From the graph, it seems that ISU had better defense against Kansas State. This can be determined by looking at the values on the axises of against West Virginia and Kansas State. It's important to look at the number of players that registered 0 tackles and those who registered the most tackles, therefore, taking in consistency and outliers into determining which defense was better.
+```{r}
+wvksDefense <- defLong %>% filter(Type %in% c('Tackles_Solo'))%>% filter(Opponent_Opponent %in% c('West Virginia','Kansas State')) %>% pivot_wider(names_from='Opponent_Opponent', values_from='Statistics')
+
+ggplot(wvksDefense, aes(x = `West Virginia`, y = `Kansas State`)) + geom_point(aes(color=Name)) + labs(title="ISU Defense vs KSU and WVU")
+```
+
+## Part 3 Question 1:
+```{r}
+bioClean <- biography %>% mutate_at('Weight',as.numeric) %>% mutate(Name = factor(Name)) %>% separate(col = Height, into = c('Feet','Inches'), sep = "-")%>% mutate(Feet = as.numeric(Feet))%>% mutate(Inches = as.numeric(Inches))%>% mutate(Feet = Feet *12)%>%rowwise() %>% mutate(Inches = sum(Feet, Inches))%>% select(-Feet)
+bioClean1 <- bioClean %>% separate(6:6, c("City","State"), sep = ",")
+cityState <- bioClean1 %>% select("City","State")
+head(cityState,3)
+```
+
+## Part 3 Question 2:
+```{r}
+bioClean2 <- bioClean1 %>% group_by(State) %>% summarise(`Players From Location` = n())
+bioClean2
+```
+
+## Part 4 Question 1:
+```{r}
+vectorBioClean = bioClean1 %>% mutate(Name = factor(Name))
+df1 <- inner_join(offClean, vectorBioClean, by = "Name")
+
+df1Final <- df1 %>% select("Name","State") 
+unique(df1Final)
+```
+
+## Part 4 Question 2:
+
+There is a relationship between the weight of a player and their receiving yards since certain weights are more prone to having higher receiving yards. For instance, there is a strong relationship with that with players who are just above 250 lbs and above 180 lbs because they represent certain players that would be able to catch the ball more often. These players would be tight ends which are the heavier players and wide receivers which are the lighter players. Another way to look at this relationship is how more consistent lighter players are to gaining receiving yards than those of heavier weights.
+```{r}
+df2Final <- df1 %>% select("Weight","Receiving_YDS") 
+ggplot(df2Final, aes(x=Receiving_YDS, y=Weight)) + geom_point() + labs(title="Relationship of Weights and Receiving Yards")
+```
+
+## Part 4 Question 3:
+
+The performance of the ISU football team outperforms Brock Purdy in all statistical categories because Brock Purdy isn't the sole producer of statistics on the team. Some players run, receive, and thrown while Brock Purdy primarily just throws and runs. Brock Purdy doesn't have defensive statistics because he doesn't ever get to play defense and tries not to hit others too hard since he needs to be protected, so there's a big difference between his statistics and the team's statistics. In the end, Brock Purdy is a vital part of the team but him alone doesn't statistically represent the entire team's statistics. 
+```{r}
+`%notin%` <- Negate(`%in%`)
+
+df3 <- full_join(offClean, defClean, by = c('Opponent_Opponent', 'Name'))
+df31 <- select (df3,-c(`Passing_CMP-ATT`)) %>% distinct(df3,Name,Opponent_Opponent, .keep_all = TRUE)
+
+avgteam <- df31 %>% mutate(Rushing_ATT = sum(Rushing_ATT,na.rm=T)) %>% mutate(Rushing_YDS = sum(Rushing_YDS,na.rm=T)) %>% mutate(Rushing_TD = sum(Rushing_TD,na.rm=T)) %>% mutate(Receiving_REC = sum(Receiving_REC,na.rm=T)) %>% mutate(Receiving_YDS = sum(Receiving_YDS,na.rm=T))%>% mutate(Receiving_TD = sum(Receiving_TD,na.rm=T))%>% mutate(Passing_YDS = sum(Passing_YDS,na.rm=T))%>% mutate(Passing_TD = sum(Passing_TD,na.rm=T))%>% mutate(Passing_INT = sum(Passing_INT,na.rm=T))%>% mutate(Tackles_Solo = sum(Tackles_Solo,na.rm=T))%>% mutate(Tackles_ASST = sum(Tackles_ASST,na.rm=T))%>% mutate(Tackles_TFL = sum(Tackles_TFL,na.rm=T))%>% mutate(Tackles_Sack = sum(Tackles_Sack,na.rm=T))%>% mutate(Turnover_FF = sum(Turnover_FF,na.rm=T))%>% mutate(Turnover_FR = sum(Turnover_FR,na.rm=T))%>% mutate(Turnover_INT = sum(Turnover_INT,na.rm=T))%>% mutate(Pass_QBH = sum(Pass_QBH,na.rm=T))%>% mutate(Pass_PB = sum(Pass_PB,na.rm=T))
+
+f <- head(avgteam,1)
+f1 <- select(f, -c(Name,Opponent_Opponent))
+f2 <- f1 %>% pivot_longer(1:18, names_to = 'Type',values_to = 'Statistics')
+f3 <- f2 %>% mutate(Name = "ISU Team")
+
+brockPurdy <- select (df3,-c(`Passing_CMP-ATT`)) %>% filter(Name %in% c('Purdy, Brock')) %>% mutate(Rushing_ATT = sum(Rushing_ATT,na.rm=T)) %>% mutate(Rushing_YDS = sum(Rushing_YDS,na.rm=T)) %>% mutate(Rushing_TD = sum(Rushing_TD,na.rm=T)) %>% mutate(Receiving_REC = sum(Receiving_REC,na.rm=T)) %>% mutate(Receiving_YDS = sum(Receiving_YDS,na.rm=T))%>% mutate(Receiving_TD = sum(Receiving_TD,na.rm=T))%>% mutate(Passing_YDS = sum(Passing_YDS,na.rm=T))%>% mutate(Passing_TD = sum(Passing_TD,na.rm=T))%>% mutate(Passing_INT = sum(Passing_INT,na.rm=T))%>% mutate(Tackles_Solo = sum(Tackles_Solo,na.rm=T))%>% mutate(Tackles_ASST = sum(Tackles_ASST,na.rm=T))%>% mutate(Tackles_TFL = sum(Tackles_TFL,na.rm=T))%>% mutate(Tackles_Sack = sum(Tackles_Sack,na.rm=T))%>% mutate(Turnover_FF = sum(Turnover_FF,na.rm=T))%>% mutate(Turnover_FR = sum(Turnover_FR,na.rm=T))%>% mutate(Turnover_INT = sum(Turnover_INT,na.rm=T))%>% mutate(Pass_QBH = sum(Pass_QBH,na.rm=T))%>% mutate(Pass_PB = sum(Pass_PB,na.rm=T))
+brockPurdy1 <- head(brockPurdy,1)
+brockPurdy2 <- select(brockPurdy1, -c(Opponent_Opponent))
+brockPurdy3 <- brockPurdy2 %>% pivot_longer(2:19, names_to = 'Type',values_to = 'Statistics')
+
+graphdata <- full_join(f3, brockPurdy3, by = c('Type','Name','Statistics'))
+
+ggplot(data=graphdata, aes(x=Type, y=Statistics, fill=Name)) +geom_bar(stat="identity", position=position_dodge()) + theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+```
